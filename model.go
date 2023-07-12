@@ -25,7 +25,18 @@ type DataSetList struct {
 	StartIndex int      `xml:"startIndex,attr"`
 	PageSize   int      `xml:"pageSize,attr"`
 
-	Methods []MethodInfo `xml:"LCIAMethod"`
+	Models         []ModelInfo        `xml:"lifeCycleModel"`
+	Methods        []MethodInfo       `xml:"LCIAMethod"`
+	Processes      []ProcessInfo      `xml:"process"`
+	Flows          []FlowInfo         `xml:"flow"`
+	FlowProperties []FlowPropertyInfo `xml:"flowProperty"`
+	UnitGroups     []UnitGroupInfo    `xml:"unitGroup"`
+	Contacts       []ContactInfo      `xml:"contact"`
+	Sources        []SourceInfo       `xml:"source"`
+}
+
+func (list *DataSetList) HasMorePages() bool {
+	return (list.StartIndex + list.PageSize) < list.TotalSize
 }
 
 type DataSetInfo struct {
@@ -35,10 +46,34 @@ type DataSetInfo struct {
 	Classification ilcd.Classification `xml:"classification"`
 }
 
+type ModelInfo struct {
+	DataSetInfo
+}
+
 type MethodInfo struct {
 	DataSetInfo
 }
 
+type ProcessInfo struct {
+	DataSetInfo
+}
+
 type FlowInfo struct {
+	DataSetInfo
+}
+
+type FlowPropertyInfo struct {
+	DataSetInfo
+}
+
+type UnitGroupInfo struct {
+	DataSetInfo
+}
+
+type ContactInfo struct {
+	DataSetInfo
+}
+
+type SourceInfo struct {
 	DataSetInfo
 }
