@@ -2,11 +2,14 @@ package soda
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/msrocka/ilcd"
 )
 
 type Client struct {
@@ -126,6 +129,52 @@ func DefaultQuery() Query {
 	return Query{
 		StartIndex: 0,
 		PageSize:   500,
+	}
+}
+
+func (client *Client) GetList(t ilcd.DataSetType) (*DataSetList, error) {
+	switch t {
+	case ilcd.ContactDataSet:
+		return client.GetContacts()
+	case ilcd.FlowDataSet:
+		return client.GetFlows()
+	case ilcd.FlowPropertyDataSet:
+		return client.GetFlowProperties()
+	case ilcd.MethodDataSet:
+		return client.GetMethods()
+	case ilcd.ModelDataSet:
+		return client.GetModels()
+	case ilcd.ProcessDataSet:
+		return client.GetProcesses()
+	case ilcd.SourceDataSet:
+		return client.GetSources()
+	case ilcd.UnitGroupDataSet:
+		return client.GetUnitGroups()
+	default:
+		return nil, fmt.Errorf("unknown data set type %s", t)
+	}
+}
+
+func (client *Client) GetListFor(t ilcd.DataSetType, q Query) (*DataSetList, error) {
+	switch t {
+	case ilcd.ContactDataSet:
+		return client.GetContactsFor(q)
+	case ilcd.FlowDataSet:
+		return client.GetFlowsFor(q)
+	case ilcd.FlowPropertyDataSet:
+		return client.GetFlowPropertiesFor(q)
+	case ilcd.MethodDataSet:
+		return client.GetMethodsFor(q)
+	case ilcd.ModelDataSet:
+		return client.GetModelsFor(q)
+	case ilcd.ProcessDataSet:
+		return client.GetProcessesFor(q)
+	case ilcd.SourceDataSet:
+		return client.GetSourcesFor(q)
+	case ilcd.UnitGroupDataSet:
+		return client.GetUnitGroupsFor(q)
+	default:
+		return nil, fmt.Errorf("unknown data set type %s", t)
 	}
 }
 

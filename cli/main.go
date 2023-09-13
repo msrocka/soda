@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/msrocka/soda"
 )
 
 func main() {
@@ -26,28 +24,13 @@ func main() {
 	case "fetch":
 		fmt.Println("fetch ...")
 	case "list":
-		fmt.Println("list ...")
+		ListDataSets(args)
 	case "stocks":
-		listStocks(args)
+		ListStocks(args)
 	}
 }
 
-func listStocks(args *Args) {
-	client := soda.NewClient(args.Endpoint())
-	stocks, err := client.GetDataStocks()
-	check(err, "failed to get data stocks")
-	if len(stocks.DataStocks) == 0 {
-		fmt.Println("no data stocks found")
-		return
-	}
-	template := "| %-40s | %-10s | %s"
-	fmt.Println(fmt.Sprintln(template, "UUID", "Is root?", "Name"))
-	for _, s := range stocks.DataStocks {
-		fmt.Println(fmt.Sprintln(template, s.UUID, s.IsRoot, s.Name))
-	}
-}
-
-func check(err error, msg string) {
+func Check(err error, msg string) {
 	if err != nil {
 		fmt.Println("error:", msg, err)
 		os.Exit(1)
