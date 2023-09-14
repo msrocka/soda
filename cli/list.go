@@ -18,6 +18,7 @@ func ListStocks(args *Args) {
 		return
 	}
 	p := printerOf(args)
+	defer p.close()
 	p.section("Data stocks")
 	p.header("UUID", "Is root?", "Name")
 	for i := range stocks.DataStocks {
@@ -30,6 +31,7 @@ func ListDataSets(args *Args) {
 	q := soda.DefaultQuery()
 	q.PageSize = 1000
 	p := printerOf(args)
+	defer p.close()
 	for {
 		page, err := client.GetProcessesFor(q)
 		Check(err, "failed to get data sets")
@@ -40,7 +42,6 @@ func ListDataSets(args *Args) {
 		}
 		q = q.NextPage()
 	}
-	q.NextPage()
 }
 
 type printer interface {
@@ -49,6 +50,7 @@ type printer interface {
 	stock(*soda.DataStock)
 	section(string)
 	br()
+	close()
 }
 
 func printPage(p printer, page *soda.DataSetList) {
@@ -80,7 +82,7 @@ func printPage(p printer, page *soda.DataSetList) {
 
 func printerOf(args *Args) printer {
 	if args.output != "" {
-		file, err := os.Open(args.output)
+		file, err := os.Create(args.output)
 		Check(err, "failed to open output file")
 		writer := csv.NewWriter(file)
 		return &csvPrinter{file, writer}
@@ -126,6 +128,9 @@ func (c *console) br() {
 	fmt.Println()
 }
 
+func (c *console) close() {
+}
+
 type csvPrinter struct {
 	file   *os.File
 	writer *csv.Writer
@@ -159,6 +164,7 @@ func (c *csvPrinter) next(row ...string) {
 	Check(c.writer.Write(row), "failed to write row")
 }
 
-func (c *csvPrinter) Close() error {
-	return c.file.Close()
+func (c *csvPrinter) close() {
+	c.writer.Flush()
+	c.file.Close()
 }

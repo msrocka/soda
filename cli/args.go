@@ -1,7 +1,7 @@
 package main
 
 import (
-	"flag"
+	"os"
 	"strings"
 )
 
@@ -9,40 +9,53 @@ type Args struct {
 	output string
 	stock  string
 	types  string
-	help   bool
 }
 
 func ParseArgs() *Args {
-	args := &Args{}
-	flag.StringVar(&args.output, "o", "",
-		"The path where the output should be written to.")
-	flag.StringVar(&args.stock, "ds", "",
-		"The optional data stock that should be used.")
-	flag.StringVar(&args.types, "types", "",
-		"The optional data set filter; e.g. '-types processes,flows'")
-	flag.BoolVar(&args.help, "h", false, "Prints this help.")
-	flag.Parse()
-	return args
+	args := Args{}
+	osArgs := os.Args
+	if len(osArgs) < 2 {
+		return &args
+	}
+
+	flag := ""
+	for i := range osArgs[1:] {
+		arg := osArgs[i]
+		if strings.HasPrefix(arg, "-") {
+			flag = arg
+			continue
+		}
+		if flag == "" {
+			continue
+		}
+		switch flag {
+		case "-o", "-out", "-output":
+			args.output = arg
+		case "-s", "-stock":
+			args.stock = arg
+		case "-t", "-type", "-types":
+			args.types = arg
+		}
+		flag = ""
+	}
+	return &args
 }
 
 func (args *Args) IsHelp() bool {
-	if args.help {
-		return true
-	}
 	cmd := args.Command()
-	return cmd == "" || cmd == "help"
+	return cmd == "" || cmd == "help" || cmd == "-h"
 }
 
 func (args *Args) Command() string {
-	xs := flag.Args()
-	if len(xs) == 0 {
+	xs := os.Args
+	if len(xs) < 2 {
 		return ""
 	}
-	return xs[0]
+	return xs[1]
 }
 
 func (args *Args) Endpoint() string {
-	xs := flag.Args()
+	xs := os.Args
 	if len(xs) == 0 {
 		return ""
 	}
