@@ -35,6 +35,21 @@ type DataSetList struct {
 	Sources        []SourceInfo       `xml:"source"`
 }
 
+func (list *DataSetList) Size() int {
+	return len(list.Models) +
+		len(list.Methods) +
+		len(list.Processes) +
+		len(list.Flows) +
+		len(list.FlowProperties) +
+		len(list.UnitGroups) +
+		len(list.Contacts) +
+		len(list.Sources)
+}
+
+func (list *DataSetList) IsEmpty() bool {
+	return list.Size() == 0
+}
+
 func (list *DataSetList) HasMorePages() bool {
 	return (list.StartIndex + list.PageSize) < list.TotalSize
 }

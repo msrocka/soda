@@ -14,6 +14,7 @@ import (
 
 type Client struct {
 	endpoint string
+	stock    string
 }
 
 func NewClient(endpoint string) *Client {
@@ -21,7 +22,12 @@ func NewClient(endpoint string) *Client {
 	if !strings.HasSuffix(url, "/resource") {
 		url += "/resource"
 	}
-	return &Client{url}
+	return &Client{endpoint: url}
+}
+
+func (client *Client) WithDataStock(stock string) *Client {
+	client.stock = stock
+	return client
 }
 
 func (client *Client) get(path string, inst any) error {

@@ -27,20 +27,34 @@ func ListStocks(args *Args) {
 }
 
 func ListDataSets(args *Args) {
-	client := soda.NewClient(args.Endpoint())
-	q := soda.DefaultQuery()
-	q.PageSize = 1000
+	client := args.Client()
 	p := printerOf(args)
-	defer p.close()
-	for {
-		page, err := client.GetProcessesFor(q)
-		Check(err, "failed to get data sets")
-		p.header("UUID", "Version", "Name")
-		printPage(p, page)
-		if !page.HasMorePages() {
-			break
+	for i, t := range args.Types().DirectList() {
+		if i > 0 {
+			p.br()
 		}
-		q = q.NextPage()
+		p.section(DataSetLabelOf(t))
+		q := soda.DefaultQuery()
+		q.PageSize = 1000
+		fetched := 0
+		defer p.close()
+		for {
+			page, err := client.GetListFor(t, q)
+			Check(err, "failed to get data sets")
+			if page.IsEmpty() {
+				break
+			}
+			if fetched == 0 {
+				p.header("UUID", "Version", "Name")
+			}
+			fetched += page.Size()
+			printPage(p, page)
+			if !page.HasMorePages() {
+				break
+			}
+			println("  fetched", fetched, "data sets; loading next page")
+			q = q.NextPage()
+		}
 	}
 }
 
