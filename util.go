@@ -1,28 +1,54 @@
 package soda
 
-func scanPage(page *DataSetList, f func(info *DataSetInfo)) {
+func scanPage(page *DataSetList, f func(info *DataSetInfo) error) error {
+
 	for i := range page.Models {
-		f(&page.Models[i].DataSetInfo)
+		if err := f(&page.Models[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
 	for i := range page.Methods {
-		f(&page.Methods[i].DataSetInfo)
+		if err := f(&page.Methods[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
 	for i := range page.Processes {
-		f(&page.Processes[i].DataSetInfo)
+		if err := f(&page.Processes[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
 	for i := range page.Flows {
-		f(&page.Flows[i].DataSetInfo)
+		if err := f(&page.Flows[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
 	for i := range page.FlowProperties {
-		f(&page.FlowProperties[i].DataSetInfo)
+		if err := f(&page.FlowProperties[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
 	for i := range page.UnitGroups {
-		f(&page.UnitGroups[i].DataSetInfo)
+		if err := f(&page.UnitGroups[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
 	for i := range page.Sources {
-		f(&page.Sources[i].DataSetInfo)
+		if err := f(&page.Sources[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
 	for i := range page.Contacts {
-		f(&page.Contacts[i].DataSetInfo)
+		if err := f(&page.Contacts[i].DataSetInfo); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }

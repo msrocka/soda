@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/msrocka/ilcd"
+	"github.com/msrocka/soda"
 )
 
 func main() {
@@ -43,4 +46,24 @@ func printHelp() {
 	fmt.Println("Usage of", strings.TrimSuffix(prog, ".exe"))
 	// TODO: document commands
 	flag.PrintDefaults()
+}
+
+func FetchDataSets(args *Args) {
+	if args.output == "" {
+		fmt.Println("error: no output file provided; usage: -o path/to/file.zip")
+		return
+	}
+
+	zip, err := ilcd.NewZipWriter(args.output)
+	Check(err, "failed to create zip file")
+	defer zip.Close()
+	client := args.Client()
+
+	for _, t := range args.Types().TransitiveList() {
+		err = client.EachDataSet(t, func(info *soda.DataSetInfo, data []byte) error {
+			path := "ILCD/" + t.Folder() + "/" + info.UUID + "_" + info.Version + ".xml"
+			return zip.Write(path, data)
+		})
+		Check(err, "failed to fetch data sets")
+	}
 }

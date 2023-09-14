@@ -35,7 +35,11 @@ func ListDataSets(args *Args) {
 		}
 		p.section(DataSetLabelOf(t))
 		p.header("UUID", "Version", "Name")
-		client.EachInfo(t, p.dataSet)
+		err := client.EachInfo(t, func(info *soda.DataSetInfo) error {
+			p.dataSet(info)
+			return nil
+		})
+		Check(err, "failed to list data set infos")
 	}
 }
 
