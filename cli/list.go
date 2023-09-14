@@ -34,27 +34,8 @@ func ListDataSets(args *Args) {
 			p.br()
 		}
 		p.section(DataSetLabelOf(t))
-		q := soda.DefaultQuery()
-		q.PageSize = 1000
-		fetched := 0
-		defer p.close()
-		for {
-			page, err := client.GetListFor(t, q)
-			Check(err, "failed to get data sets")
-			if page.IsEmpty() {
-				break
-			}
-			if fetched == 0 {
-				p.header("UUID", "Version", "Name")
-			}
-			fetched += page.Size()
-			ScanPage(page, p.dataSet)
-			if !page.HasMorePages() {
-				break
-			}
-			println("  fetched", fetched, "data sets; loading next page")
-			q = q.NextPage()
-		}
+		p.header("UUID", "Version", "Name")
+		client.EachInfo(t, p.dataSet)
 	}
 }
 

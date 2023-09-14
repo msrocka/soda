@@ -302,6 +302,26 @@ func (client *Client) GetSourcesFor(q Query) (*DataSetList, error) {
 	return client.GetListFor(ilcd.SourceDataSet, q)
 }
 
+func (client *Client) EachInfo(t ilcd.DataSetType, f func(*DataSetInfo)) error {
+	q := DefaultQuery()
+	q.PageSize = 5000
+	for {
+		page, err := client.GetListFor(t, q)
+		if err != nil {
+			return err
+		}
+		if page.IsEmpty() {
+			break
+		}
+		scanPage(page, f)
+		if !page.HasMorePages() {
+			break
+		}
+		q = q.NextPage()
+	}
+	return nil
+}
+
 func (client *Client) pathOf(t ilcd.DataSetType) string {
 	var suffix string
 	switch t {

@@ -29,26 +29,9 @@ func FetchDataSets(args *Args) {
 }
 
 func collectInfos(client *soda.Client, t ilcd.DataSetType) []*soda.DataSetInfo {
-	q := soda.DefaultQuery()
-	q.PageSize = 1000
 	infos := make([]*soda.DataSetInfo, 0)
-	println("  fetch descriptors of:", DataSetLabelOf(t))
-	fetched := 0
-	for {
-		page, err := client.GetListFor(t, q)
-		Check(err, "failed to get data sets")
-		if page.IsEmpty() {
-			break
-		}
-		ScanPage(page, func(info *soda.DataSetInfo) {
-			infos = append(infos, info)
-		})
-		if !page.HasMorePages() {
-			break
-		}
-		fetched += page.Size()
-		println("  .. fetched", fetched, "data sets; fetch next page")
-		q = q.NextPage()
-	}
+	client.EachInfo(t, func(info *soda.DataSetInfo) {
+		infos = append(infos, info)
+	})
 	return infos
 }
