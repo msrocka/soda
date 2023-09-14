@@ -17,16 +17,11 @@ func ListStocks(args *Args) {
 		fmt.Println("no data stocks found")
 		return
 	}
-	template := "| %-36s | %-10s | %s\n"
-	_, err = fmt.Printf(template, "UUID", "Is root?", "Name")
-	Check(err, "invalid format")
-	for _, s := range stocks.DataStocks {
-		isRoot := "false"
-		if s.IsRoot {
-			isRoot = "true"
-		}
-		_, err = fmt.Printf(template, s.UUID, isRoot, s.ShortName)
-		Check(err, "invalid format")
+	p := printerOf(args)
+	p.section("Data stocks")
+	p.header("UUID", "Is root?", "Name")
+	for i := range stocks.DataStocks {
+		p.stock(&stocks.DataStocks[i])
 	}
 }
 
@@ -38,15 +33,8 @@ func ListDataSets(args *Args) {
 	for {
 		page, err := client.GetProcessesFor(q)
 		Check(err, "failed to get data sets")
-
-		template := "| %-36s | %-10s | %s\n"
-		_, err = fmt.Printf(template, "UUID", "Version", "Name")
 		p.header("UUID", "Version", "Name")
 		printPage(p, page)
-		Check(err, "invalid format")
-		for _, ds := range page.Processes {
-			fmt.Printf(template, ds.UUID, ds.Version, ds.Name.Default())
-		}
 		if !page.HasMorePages() {
 			break
 		}
@@ -58,6 +46,9 @@ func ListDataSets(args *Args) {
 type printer interface {
 	header(...string)
 	dataSet(*soda.DataSetInfo)
+	stock(*soda.DataStock)
+	section(string)
+	br()
 }
 
 func printPage(p printer, page *soda.DataSetList) {
@@ -92,7 +83,7 @@ func printerOf(args *Args) printer {
 		file, err := os.Open(args.output)
 		Check(err, "failed to open output file")
 		writer := csv.NewWriter(file)
-		return &csvPrinter{writer}
+		return &csvPrinter{file, writer}
 	}
 	return &console{
 		template: "| %-36s | %-10s | %s\n",
@@ -104,7 +95,11 @@ type console struct {
 }
 
 func (c *console) header(header ...string) {
-	_, err := fmt.Printf(c.template, header)
+	xs := make([]any, len(header))
+	for i := range header {
+		xs[i] = header[i]
+	}
+	_, err := fmt.Printf(c.template, xs...)
 	Check(err, "invalid format")
 }
 
@@ -114,20 +109,56 @@ func (c *console) dataSet(i *soda.DataSetInfo) {
 	Check(err, "invalid format")
 }
 
+func (c *console) stock(s *soda.DataStock) {
+	isRoot := "false"
+	if s.IsRoot {
+		isRoot = "true"
+	}
+	_, err := fmt.Printf(c.template, s.UUID, isRoot, s.ShortName)
+	Check(err, "invalid format")
+}
+
+func (c *console) section(header string) {
+	fmt.Println(header)
+}
+
+func (c *console) br() {
+	fmt.Println()
+}
+
 type csvPrinter struct {
-	file   os.File
+	file   *os.File
 	writer *csv.Writer
 }
 
 func (c *csvPrinter) header(header ...string) {
-	Check(c.writer.Write(header), "failed to write row")
+	c.next(header...)
 }
 
 func (c *csvPrinter) dataSet(i *soda.DataSetInfo) {
-	err := c.writer.Write([]string{i.UUID, i.Version, i.Name.Default()})
-	Check(err, "failed to write row")
+	c.next(i.UUID, i.Version, i.Name.Default())
 }
 
-func (c *csvPrinter) Close() {
-	c.file.Close()
+func (c *csvPrinter) stock(s *soda.DataStock) {
+	isRoot := "false"
+	if s.IsRoot {
+		isRoot = "true"
+	}
+	c.next(s.UUID, isRoot, s.ShortName)
+}
+
+func (c *csvPrinter) section(header string) {
+	c.next(header)
+}
+
+func (c *csvPrinter) br() {
+	c.next()
+}
+
+func (c *csvPrinter) next(row ...string) {
+	Check(c.writer.Write(row), "failed to write row")
+}
+
+func (c *csvPrinter) Close() error {
+	return c.file.Close()
 }
