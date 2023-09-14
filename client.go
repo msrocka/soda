@@ -157,53 +157,21 @@ func DefaultQuery() Query {
 }
 
 func (client *Client) GetList(t ilcd.DataSetType) (*DataSetList, error) {
-	switch t {
-	case ilcd.ContactDataSet:
-		return client.GetContacts()
-	case ilcd.FlowDataSet:
-		return client.GetFlows()
-	case ilcd.FlowPropertyDataSet:
-		return client.GetFlowProperties()
-	case ilcd.MethodDataSet:
-		return client.GetMethods()
-	case ilcd.ModelDataSet:
-		return client.GetModels()
-	case ilcd.ProcessDataSet:
-		return client.GetProcesses()
-	case ilcd.SourceDataSet:
-		return client.GetSources()
-	case ilcd.UnitGroupDataSet:
-		return client.GetUnitGroups()
-	default:
-		return nil, fmt.Errorf("unknown data set type %s", t)
-	}
+	return client.GetListFor(t, DefaultQuery())
 }
 
 func (client *Client) GetListFor(t ilcd.DataSetType, q Query) (*DataSetList, error) {
-	switch t {
-	case ilcd.ContactDataSet:
-		return client.GetContactsFor(q)
-	case ilcd.FlowDataSet:
-		return client.GetFlowsFor(q)
-	case ilcd.FlowPropertyDataSet:
-		return client.GetFlowPropertiesFor(q)
-	case ilcd.MethodDataSet:
-		return client.GetMethodsFor(q)
-	case ilcd.ModelDataSet:
-		return client.GetModelsFor(q)
-	case ilcd.ProcessDataSet:
-		return client.GetProcessesFor(q)
-	case ilcd.SourceDataSet:
-		return client.GetSourcesFor(q)
-	case ilcd.UnitGroupDataSet:
-		return client.GetUnitGroupsFor(q)
-	default:
-		return nil, fmt.Errorf("unknown data set type %s", t)
+	path := client.pathOf(t) + q.encode()
+	list := DataSetList{}
+	if err := client.get(path, &list); err != nil {
+		return nil, err
+	} else {
+		return &list, nil
 	}
 }
 
 func (client *Client) GetDataSet(t ilcd.DataSetType, id string) ([]byte, error) {
-	return client.getRaw(client.pathOf(t) + "/" + id)
+	return client.getRaw(client.pathOf(t) + "/" + id + "?format=XML")
 }
 
 func (client *Client) GetMethod(id string) (*ilcd.Method, error) {
@@ -219,13 +187,15 @@ func (client *Client) GetMethods() (*DataSetList, error) {
 }
 
 func (client *Client) GetMethodsFor(q Query) (*DataSetList, error) {
-	path := "/lciamethods" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
+	return client.GetListFor(ilcd.MethodDataSet, q)
+}
+
+func (client *Client) GetModel(id string) (*ilcd.Model, error) {
+	data, err := client.GetDataSet(ilcd.ModelDataSet, id)
+	if err != nil {
 		return nil, err
-	} else {
-		return &list, nil
 	}
+	return ilcd.ReadModel(data)
 }
 
 func (client *Client) GetModels() (*DataSetList, error) {
@@ -233,13 +203,15 @@ func (client *Client) GetModels() (*DataSetList, error) {
 }
 
 func (client *Client) GetModelsFor(q Query) (*DataSetList, error) {
-	path := "/lifecyclemodels" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
+	return client.GetListFor(ilcd.ModelDataSet, q)
+}
+
+func (client *Client) GetProcess(id string) (*ilcd.Process, error) {
+	data, err := client.GetDataSet(ilcd.ProcessDataSet, id)
+	if err != nil {
 		return nil, err
-	} else {
-		return &list, nil
 	}
+	return ilcd.ReadProcess(data)
 }
 
 func (client *Client) GetProcesses() (*DataSetList, error) {
@@ -247,13 +219,15 @@ func (client *Client) GetProcesses() (*DataSetList, error) {
 }
 
 func (client *Client) GetProcessesFor(q Query) (*DataSetList, error) {
-	path := "/processes" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
+	return client.GetListFor(ilcd.ProcessDataSet, q)
+}
+
+func (client *Client) GetFlow(id string) (*ilcd.Flow, error) {
+	data, err := client.GetDataSet(ilcd.FlowDataSet, id)
+	if err != nil {
 		return nil, err
-	} else {
-		return &list, nil
 	}
+	return ilcd.ReadFlow(data)
 }
 
 func (client *Client) GetFlows() (*DataSetList, error) {
@@ -261,13 +235,15 @@ func (client *Client) GetFlows() (*DataSetList, error) {
 }
 
 func (client *Client) GetFlowsFor(q Query) (*DataSetList, error) {
-	path := "/flows" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
+	return client.GetListFor(ilcd.FlowDataSet, q)
+}
+
+func (client *Client) GetFlowProperty(id string) (*ilcd.FlowProperty, error) {
+	data, err := client.GetDataSet(ilcd.FlowPropertyDataSet, id)
+	if err != nil {
 		return nil, err
-	} else {
-		return &list, nil
 	}
+	return ilcd.ReadFlowProperty(data)
 }
 
 func (client *Client) GetFlowProperties() (*DataSetList, error) {
@@ -275,13 +251,15 @@ func (client *Client) GetFlowProperties() (*DataSetList, error) {
 }
 
 func (client *Client) GetFlowPropertiesFor(q Query) (*DataSetList, error) {
-	path := "/flowproperties" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
+	return client.GetListFor(ilcd.FlowPropertyDataSet, q)
+}
+
+func (client *Client) GetUnitGroup(id string) (*ilcd.UnitGroup, error) {
+	data, err := client.GetDataSet(ilcd.UnitGroupDataSet, id)
+	if err != nil {
 		return nil, err
-	} else {
-		return &list, nil
 	}
+	return ilcd.ReadUnitGroup(data)
 }
 
 func (client *Client) GetUnitGroups() (*DataSetList, error) {
@@ -289,13 +267,15 @@ func (client *Client) GetUnitGroups() (*DataSetList, error) {
 }
 
 func (client *Client) GetUnitGroupsFor(q Query) (*DataSetList, error) {
-	path := "/unitgroups" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
+	return client.GetListFor(ilcd.UnitGroupDataSet, q)
+}
+
+func (client *Client) GetContact(id string) (*ilcd.Contact, error) {
+	data, err := client.GetDataSet(ilcd.ContactDataSet, id)
+	if err != nil {
 		return nil, err
-	} else {
-		return &list, nil
 	}
+	return ilcd.ReadContact(data)
 }
 
 func (client *Client) GetContacts() (*DataSetList, error) {
@@ -303,13 +283,15 @@ func (client *Client) GetContacts() (*DataSetList, error) {
 }
 
 func (client *Client) GetContactsFor(q Query) (*DataSetList, error) {
-	path := "/contacts" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
+	return client.GetListFor(ilcd.ContactDataSet, q)
+}
+
+func (client *Client) GetSource(id string) (*ilcd.Source, error) {
+	data, err := client.GetDataSet(ilcd.SourceDataSet, id)
+	if err != nil {
 		return nil, err
-	} else {
-		return &list, nil
 	}
+	return ilcd.ReadSource(data)
 }
 
 func (client *Client) GetSources() (*DataSetList, error) {
@@ -317,13 +299,7 @@ func (client *Client) GetSources() (*DataSetList, error) {
 }
 
 func (client *Client) GetSourcesFor(q Query) (*DataSetList, error) {
-	path := "/sources" + q.encode()
-	list := DataSetList{}
-	if err := client.get(path, &list); err != nil {
-		return nil, err
-	} else {
-		return &list, nil
-	}
+	return client.GetListFor(ilcd.SourceDataSet, q)
 }
 
 func (client *Client) pathOf(t ilcd.DataSetType) string {

@@ -22,7 +22,7 @@ func main() {
 
 	switch args.Command() {
 	case "fetch":
-		FetchDataSets(&Args{})
+		FetchDataSets(args)
 	case "list":
 		ListDataSets(args)
 	case "stocks":
