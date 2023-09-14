@@ -25,27 +25,45 @@ func NewClient(endpoint string) *Client {
 	return &Client{endpoint: url}
 }
 
-func (client *Client) WithDataStock(stock string) *Client {
-	client.stock = stock
-	return client
-}
-
-func (client *Client) get(path string, inst any) error {
-	url := client.endpoint + path
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+func (client *Client) WithDataStock(stock string) error {
+	stocks, err := client.GetDataStocks()
 	if err != nil {
 		return err
 	}
+	for i := range stocks.DataStocks {
+		s := &stocks.DataStocks[i]
+		if s.ShortName == stock || s.UUID == stock {
+			client.stock = s.UUID
+			return nil
+		}
+	}
+	return fmt.Errorf("could not find data stock: %s", stock)
+}
+
+func (client *Client) getRaw(path string) ([]byte, error) {
+	url := client.endpoint + path
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+func (client *Client) get(path string, inst any) error {
+	bytes, err := client.getRaw(path)
+	if err != nil {
 		return err
 	}
-	return xml.Unmarshal(body, inst)
+	return xml.Unmarshal(bytes, inst)
 }
 
 func (client *Client) GetDataStocks() (*DataStockList, error) {
@@ -184,6 +202,18 @@ func (client *Client) GetListFor(t ilcd.DataSetType, q Query) (*DataSetList, err
 	}
 }
 
+func (client *Client) GetDataSet(t ilcd.DataSetType, id string) ([]byte, error) {
+	return client.getRaw(client.pathOf(t) + "/" + id)
+}
+
+func (client *Client) GetMethod(id string) (*ilcd.Method, error) {
+	data, err := client.GetDataSet(ilcd.MethodDataSet, id)
+	if err != nil {
+		return nil, err
+	}
+	return ilcd.ReadMethod(data)
+}
+
 func (client *Client) GetMethods() (*DataSetList, error) {
 	return client.GetMethodsFor(DefaultQuery())
 }
@@ -293,5 +323,34 @@ func (client *Client) GetSourcesFor(q Query) (*DataSetList, error) {
 		return nil, err
 	} else {
 		return &list, nil
+	}
+}
+
+func (client *Client) pathOf(t ilcd.DataSetType) string {
+	var suffix string
+	switch t {
+	case ilcd.ContactDataSet:
+		suffix = "/contacts"
+	case ilcd.FlowDataSet:
+		suffix = "/flows"
+	case ilcd.FlowPropertyDataSet:
+		suffix = "/flowproperties"
+	case ilcd.MethodDataSet:
+		suffix = "/lciamethods"
+	case ilcd.ModelDataSet:
+		suffix = "/lifecyclemodels"
+	case ilcd.ProcessDataSet:
+		suffix = "/processes"
+	case ilcd.SourceDataSet:
+		suffix = "/sources"
+	case ilcd.UnitGroupDataSet:
+		suffix = "/unitgroups"
+	default:
+		suffix = "/unknown"
+	}
+	if client.stock == "" {
+		return suffix
+	} else {
+		return "/datastocks/" + client.stock + suffix
 	}
 }

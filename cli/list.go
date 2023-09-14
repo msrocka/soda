@@ -48,7 +48,7 @@ func ListDataSets(args *Args) {
 				p.header("UUID", "Version", "Name")
 			}
 			fetched += page.Size()
-			printPage(p, page)
+			ScanPage(page, p.dataSet)
 			if !page.HasMorePages() {
 				break
 			}
@@ -65,33 +65,6 @@ type printer interface {
 	section(string)
 	br()
 	close()
-}
-
-func printPage(p printer, page *soda.DataSetList) {
-	for i := range page.Models {
-		p.dataSet(&page.Models[i].DataSetInfo)
-	}
-	for i := range page.Methods {
-		p.dataSet(&page.Methods[i].DataSetInfo)
-	}
-	for i := range page.Processes {
-		p.dataSet(&page.Processes[i].DataSetInfo)
-	}
-	for i := range page.Flows {
-		p.dataSet(&page.Flows[i].DataSetInfo)
-	}
-	for i := range page.FlowProperties {
-		p.dataSet(&page.FlowProperties[i].DataSetInfo)
-	}
-	for i := range page.UnitGroups {
-		p.dataSet(&page.UnitGroups[i].DataSetInfo)
-	}
-	for i := range page.Sources {
-		p.dataSet(&page.Sources[i].DataSetInfo)
-	}
-	for i := range page.Contacts {
-		p.dataSet(&page.Contacts[i].DataSetInfo)
-	}
 }
 
 func printerOf(args *Args) printer {
