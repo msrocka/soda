@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/msrocka/ilcd"
@@ -25,37 +23,44 @@ func NewClient(endpoint string) *Client {
 	return &Client{endpoint: url}
 }
 
-func (client *Client) WithDataStock(stock string) error {
-	stocks, err := client.GetDataStocks()
+func (client *Client) WithDataStock(idOrName string) error {
+	stock, err := client.findDataStock(idOrName)
 	if err != nil {
 		return err
 	}
-	for i := range stocks.DataStocks {
-		s := &stocks.DataStocks[i]
-		if s.ShortName == stock || s.UUID == stock {
-			client.stock = s.UUID
-			return nil
-		}
-	}
-	return fmt.Errorf("could not find data stock: %s", stock)
+	client.stock = stock.UUID
+	return nil
 }
 
 func (client *Client) getRaw(path string) ([]byte, error) {
+	var data []byte
+	err := client.handleBody(path, func(body io.Reader) error {
+		if bytes, err := io.ReadAll(body); err != nil {
+			return err
+		} else {
+			data = bytes
+			return nil
+		}
+	})
+	return data, err
+}
+
+func (client *Client) handleBody(path string, f func(io.Reader) error) error {
 	url := client.endpoint + path
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	if res.StatusCode >= 400 {
+		return fmt.Errorf(
+			"request GET %s failed: %d %s", url, res.StatusCode, res.Status)
 	}
-	return body, nil
+	f(res.Body)
+	return res.Body.Close()
 }
 
 func (client *Client) get(path string, inst any) error {
@@ -66,102 +71,12 @@ func (client *Client) get(path string, inst any) error {
 	return xml.Unmarshal(bytes, inst)
 }
 
-func (client *Client) GetDataStocks() (*DataStockList, error) {
-	stocks := DataStockList{}
-	if err := client.get("/datastocks", &stocks); err != nil {
-		return nil, err
-	} else {
-		return &stocks, nil
-	}
-}
-
-type Query struct {
-	StartIndex   int
-	PageSize     int
-	Search       bool
-	Distributed  bool
-	Name         string
-	Description  string
-	ClassId      string
-	Lang         string
-	LangFallback bool
-	AllVersions  bool
-	CountOnly    bool
-	Format       string
-}
-
-func (query *Query) NextPage() Query {
-	return Query{
-		StartIndex:   query.StartIndex + query.PageSize,
-		PageSize:     query.PageSize,
-		Search:       query.Search,
-		Distributed:  query.Distributed,
-		Name:         query.Name,
-		Description:  query.Description,
-		ClassId:      query.ClassId,
-		Lang:         query.Lang,
-		LangFallback: query.LangFallback,
-		AllVersions:  query.AllVersions,
-		CountOnly:    query.CountOnly,
-		Format:       query.Format,
-	}
-}
-
-func (query *Query) encode() string {
-	params := url.Values{}
-	if query.StartIndex != 0 {
-		params.Add("startIndex", strconv.Itoa(query.StartIndex))
-	}
-	if query.PageSize != 500 {
-		params.Add("pageSize", strconv.Itoa(query.PageSize))
-	}
-	if query.Search {
-		params.Add("search", "true")
-	}
-	if query.Distributed {
-		params.Add("distributed", "true")
-	}
-	if query.LangFallback {
-		params.Add("langFallback", "true")
-	}
-	if query.AllVersions {
-		params.Add("allVersions", "true")
-	}
-	if query.CountOnly {
-		params.Add("countOnly", "true")
-	}
-	if len(query.Name) > 0 {
-		params.Add("name", query.Name)
-	}
-	if len(query.Description) > 0 {
-		params.Add("description", query.Description)
-	}
-	if len(query.ClassId) > 0 {
-		params.Add("classId", query.ClassId)
-	}
-	if len(query.Lang) > 0 {
-		params.Add("lang", query.Lang)
-	}
-	if len(params) > 0 {
-		return "?" + params.Encode()
-	} else {
-		return ""
-	}
-}
-
-func DefaultQuery() Query {
-	return Query{
-		StartIndex: 0,
-		PageSize:   500,
-	}
-}
-
 func (client *Client) GetList(t ilcd.DataSetType) (*DataSetList, error) {
 	return client.GetListFor(t, DefaultQuery())
 }
 
 func (client *Client) GetListFor(t ilcd.DataSetType, q Query) (*DataSetList, error) {
-	path := client.pathOf(t) + q.encode()
+	path := client.pathOf(t) + q.String()
 	list := DataSetList{}
 	if err := client.get(path, &list); err != nil {
 		return nil, err
