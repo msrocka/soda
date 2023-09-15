@@ -12,6 +12,7 @@ type Args struct {
 	output string
 	stock  string
 	types  string
+	format string
 }
 
 func ParseArgs() *Args {
@@ -38,6 +39,8 @@ func ParseArgs() *Args {
 			args.stock = arg
 		case "-t", "-type", "-types":
 			args.types = arg
+		case "-f", "-format":
+			args.format = arg
 		}
 		flag = ""
 	}

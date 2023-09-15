@@ -41,3 +41,15 @@ func (client *Client) ExportDataStock(idOrName string, writer io.Writer) error {
 		return err
 	})
 }
+
+func (client *Client) ExportDataStockCSV(idOrName string, writer io.Writer) error {
+	stock, err := client.findDataStock(idOrName)
+	if err != nil {
+		return err
+	}
+	path := "/datastocks/" + stock.UUID + "/exportCSV"
+	return client.handleBody(path, func(body io.Reader) error {
+		_, err := io.Copy(writer, body)
+		return err
+	})
+}

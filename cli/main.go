@@ -97,12 +97,28 @@ func ExportStock(args *Args) {
 		return
 	}
 
+	// open file
 	file, err := os.Create(args.output)
 	Check(err, "failed to create the output file")
 	defer file.Close()
-
 	log.Println("export data set", args.stock, "to", args.output)
+
+	// detect format
+	asCsv := false
+	format := strings.ToLower(strings.TrimSpace(args.format))
+	if strings.HasSuffix(format, "csv") {
+		asCsv = true
+		log.Println("export as CSV file")
+	} else if !strings.HasSuffix(format, "zip") {
+		log.Println("warning: unknown format", format, "; fall back to zip")
+	}
+
+	// make request
 	client := args.Client()
-	err = client.ExportDataStock(args.stock, file)
+	if asCsv {
+		err = client.ExportDataStockCSV(args.stock, file)
+	} else {
+		err = client.ExportDataStock(args.stock, file)
+	}
 	Check(err, "failed to download data stock")
 }
