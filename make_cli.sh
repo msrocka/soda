@@ -1,2 +1,2 @@
 #! /bin/bash
-go build -C cli -o ../soda-cli
+go build -C cli -o ../soda

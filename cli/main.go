@@ -30,6 +30,8 @@ func main() {
 		ListDataSets(args)
 	case "stocks":
 		ListStocks(args)
+	case "stats":
+		Stats(args)
 	}
 }
 
