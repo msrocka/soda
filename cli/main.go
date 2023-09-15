@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -32,12 +33,15 @@ func main() {
 		ListStocks(args)
 	case "stats":
 		Stats(args)
+	case "export":
+		ExportStock(args)
 	}
 }
 
 func Check(err error, msg string) {
 	if err != nil {
-		fmt.Println("error:", msg, err)
+		fmt.Println("error:", msg)
+		fmt.Println("Error details:", err)
 		os.Exit(1)
 	}
 }
@@ -56,16 +60,49 @@ func FetchDataSets(args *Args) {
 		return
 	}
 
+	log.Println("download data sets to package", args.output)
 	zip, err := ilcd.NewZipWriter(args.output)
 	Check(err, "failed to create zip file")
 	defer zip.Close()
 	client := args.Client()
 
 	for _, t := range args.Types().TransitiveList() {
+		label := DataSetLabelOf(t)
+		log.Println("download:", label)
+		i := 0
 		err = client.EachDataSet(t, func(info *soda.DataSetInfo, data []byte) error {
+			i += 1
+			if i%100 == 0 {
+				log.Println(label, "- downloaded", i, "data sets")
+			}
 			path := "ILCD/" + t.Folder() + "/" + info.UUID + "_" + info.Version + ".xml"
-			return zip.Write(path, data)
+			Check(zip.Write(path, data), "failed to write "+path)
+			return nil
 		})
-		Check(err, "failed to fetch data sets")
+		if err != nil {
+			log.Println(label, "- failed to download data sets:", err)
+		} else {
+			log.Println(label, "- downloaded", i, "data sets")
+		}
 	}
+}
+
+func ExportStock(args *Args) {
+	if args.stock == "" {
+		fmt.Println("error: no data stock provided; usage: -s DATA_STOCK")
+		return
+	}
+	if args.output == "" {
+		fmt.Println("error: no output file provided; usage: -o PATH/TO/FILE")
+		return
+	}
+
+	file, err := os.Create(args.output)
+	Check(err, "failed to create the output file")
+	defer file.Close()
+
+	log.Println("export data set", args.stock, "to", args.output)
+	client := args.Client()
+	err = client.ExportDataStock(args.stock, file)
+	Check(err, "failed to download data stock")
 }

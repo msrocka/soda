@@ -56,8 +56,7 @@ func (client *Client) handleBody(path string, f func(io.Reader) error) error {
 		return err
 	}
 	if res.StatusCode >= 400 {
-		return fmt.Errorf(
-			"request GET %s failed: %d %s", url, res.StatusCode, res.Status)
+		return fmt.Errorf("request GET %s failed: %s", url, res.Status)
 	}
 	f(res.Body)
 	return res.Body.Close()
