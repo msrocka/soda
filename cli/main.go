@@ -109,7 +109,7 @@ func ExportStock(args *Args) {
 	if strings.HasSuffix(format, "csv") {
 		asCsv = true
 		log.Println("export as CSV file")
-	} else if !strings.HasSuffix(format, "zip") {
+	} else if format != "" && !strings.HasSuffix(format, "zip") {
 		log.Println("warning: unknown format", format, "; fall back to zip")
 	}
 
